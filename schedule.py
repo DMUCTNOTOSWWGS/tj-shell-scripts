@@ -9,15 +9,19 @@ def get_schedule():
     r = requests.get('https://ion.tjhsst.edu/api/schedule')
     return r.json()
 
+def parse_date(s):
+    return datetime.datetime.strptime(s, '%Y-%m-%d').date()
+
+def parse_time(s):
+    return datetime.datetime.strptime(s, '%H:%M').time()
+
 
 def main():
     lines_printed = 0
     obj = get_schedule()
 
     sched = obj['results'][0]
-    sched_date = datetime.datetime.strptime(
-            sched['date'], '%Y-%m-%d').date()
-
+    sched_date = parse_date(sched['date'])
     #now = datetime.datetime(2016, 9, 12, 9, 29, 50)
     now = datetime.datetime.now()
     is_today = sched_date == now.date()
@@ -32,13 +36,13 @@ def main():
 
     current_block = None
     for block in sched['day_type']['blocks']:
-        start = datetime.datetime.strptime(
-                block['start'], '%H:%M').time()
-        end = datetime.datetime.strptime(
-                block['end'], '%H:%M').time()
+        start = parse_time(block['start'])
+        end = parse_time(block['end'])
 
         text = '{:>10}   {:>5} - {:>5}'.format(
-                block['name'], '{:%H:%M}'.format(start), '{:%H:%M}'.format(end))
+                block['name'],
+                '{:%H:%M}'.format(start),
+                '{:%H:%M}'.format(end))
         if is_today and start <= now.time() <= end:
             print('\033[1;32m' + text + '\033[0m')
             current_block = dict(block, start_t=start, end_t=end)
@@ -63,8 +67,7 @@ def main():
         print()
         lines_printed += 2
 
-        print('{}(reset)'.format(
-            ''.join(['\033[A\r\033[K'] * (lines_printed - 1))))
+        print(''.join(['\033[A\r\033[K'] * (lines_printed - 1)), end='')
         return True
 
     return False
