@@ -3,11 +3,15 @@
 import datetime
 import re
 import requests
+import sys
 import time
 
-def get_schedule():
-    r = requests.get('https://ion.tjhsst.edu/api/schedule')
+
+def get_schedule(date=''):
+    url = 'https://ion.tjhsst.edu/api/schedule/{}'.format(date)
+    r = requests.get(url)
     return r.json()
+
 
 def parse_date(s):
     return datetime.datetime.strptime(s, '%Y-%m-%d').date()
@@ -15,62 +19,84 @@ def parse_date(s):
 def parse_time(s):
     return datetime.datetime.strptime(s, '%H:%M').time()
 
+def pad_width(s):
+    return '{:^30}'.format(s)
 
-def main():
+
+def print_schedule(sched, now):
     lines_printed = 0
-    obj = get_schedule()
 
-    sched = obj['results'][0]
     sched_date = parse_date(sched['date'])
-    #now = datetime.datetime(2016, 9, 12, 9, 29, 50)
-    now = datetime.datetime.now()
     is_today = sched_date == now.date()
 
-    lines = [
-        '{:%a, %b %d}'.format(sched_date),
-        re.sub(r'<.+?>', '', sched['day_type']['name'])
-    ]
-    for line in lines:
-        print('{:^26}'.format(line))
-        lines_printed += 1
+    # print date
+    print(pad_width('{:%a, %b %d}'.format(sched_date)))
+    lines_printed += 1
 
-    current_block = None
+    # print day type with color
+    day_type = pad_width(re.sub(r'<.+?>', '', sched['day_type']['name']))
+    if 'Blue' in day_type:
+        day_color = '34'
+    elif 'Red' in day_type:
+        day_color = '31'
+    elif 'Anchor' in day_type:
+        day_color = '35'
+    else:
+        day_color = '37'
+    print('\033[1;{}m'.format(day_color) + day_type + '\033[0m')
+    lines_printed += 1
+
+    # print each block
+    do_update = False
     for block in sched['day_type']['blocks']:
         start = parse_time(block['start'])
         end = parse_time(block['end'])
 
-        text = '{:>10}   {:>5} - {:>5}'.format(
-                block['name'],
-                '{:%H:%M}'.format(start),
-                '{:%H:%M}'.format(end))
+        text = '{:<10}   {:>5} - {:>5}'.format(block['name'],
+            '{:%H:%M}'.format(start), '{:%H:%M}'.format(end))
+
         if is_today and start <= now.time() <= end:
-            print('\033[1;32m' + text + '\033[0m')
-            current_block = dict(block, start_t=start, end_t=end)
+            start_date = datetime.datetime.combine(sched_date, start)
+            start_delta = now - start_date
+
+            end_date = datetime.datetime.combine(sched_date, end)
+            end_delta = end_date - now
+
+            print('\033[1m  ' + text + '  \033[0m')
+            print('\033[2m    {:02}:{:02} ~~ {:02}:{:02} \033[0m'.format(
+                start_delta.seconds // 60, start_delta.seconds % 60,
+                end_delta.seconds // 60, end_delta.seconds % 60))
+            lines_printed += 2
+            do_update = True
+
         else:
-            print(text)
-        lines_printed += 1
+            print('  ' + text + '  ')
+            lines_printed += 1
 
-    if current_block:
-        print()
-        lines_printed += 1
-        block_end = datetime.datetime.combine(
-                sched_date, current_block['end_t'])
-        while True:
-            delta = block_end - now
-            if delta < datetime.timedelta(0):
-                break
-            print('\r\033[K{:02}:{:02} until next block'.format(
-                    delta.seconds // 60, delta.seconds % 60), end='')
-            time.sleep(0.5)
-            now = datetime.datetime.now()
-            #now += datetime.timedelta(milliseconds=500)
-        print()
-        lines_printed += 2
+    return lines_printed, do_update
 
-        print(''.join(['\033[A\r\033[K'] * (lines_printed - 1)), end='')
-        return True
 
-    return False
+def clear_lines(n):
+    print(''.join(['\033[A\r\033[K'] * n), end='')
+
+
+def main():
+    now = datetime.datetime.now()
+    if len(sys.argv) >= 2:
+        sched = get_schedule(sys.argv[1])
+    else:
+        sched = get_schedule()['results'][0]
+
+    while True:
+        lines_printed, do_update = print_schedule(sched, now)
+        if not do_update:
+            break
+
+        time.sleep(0.5)
+        now = datetime.datetime.now()
+
+        clear_lines(lines_printed)
+
 
 if __name__ == '__main__':
     try:
