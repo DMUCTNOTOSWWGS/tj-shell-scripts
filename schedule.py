@@ -77,7 +77,7 @@ def print_schedule(sched, now):
 
 
 def clear_lines(n):
-    print(''.join(['\033[A\r\033[K'] * n), end='')
+    print(''.join(['\033[A\r'] * n), end='')
 
 
 def main():
