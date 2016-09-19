@@ -26,8 +26,10 @@ def get_schedule(date=''):
 def parse_date(s):
     return datetime.datetime.strptime(s, '%Y-%m-%d').date()
 
+
 def parse_time(s):
     return datetime.datetime.strptime(s, '%H:%M').time()
+
 
 def pad_width(s):
     return '{:^30}'.format(s)
@@ -60,24 +62,30 @@ def print_schedule(sched, now):
     # print each block
     do_update = False
     for block in sched['day_type']['blocks']:
-        start = parse_time(block['start'])
-        end = parse_time(block['end'])
+        start = datetime.datetime.combine(
+            sched_date, parse_time(block['start']))
+        end = datetime.datetime.combine(
+            sched_date, parse_time(block['end']))
 
         text = '{:<10}   {:>5} - {:>5}'.format(block['name'],
             '{:%H:%M}'.format(start), '{:%H:%M}'.format(end))
 
-        if is_today and start <= now.time() <= end:
-            start_date = datetime.datetime.combine(sched_date, start)
-            start_delta = now - start_date
+        if is_today and start <= now <= end:
+            start_delta = now - start
+            total_delta = end - start
 
-            end_date = datetime.datetime.combine(sched_date, end)
-            end_delta = end_date - now
-
-            print('\x1b[1m  {}  \x1b[0m'.format(text))
-            print('\x1b[2m    {:02}:{:02} ~~ {:02}:{:02} \x1b[0m'.format(
+            progress = max(1, round(start_delta / total_delta * 24))
+            status1 = '\x1b[36m' + '=' * (progress - 1) + '>\x1b[0;2m' + '-' * (24 - progress)
+            status2 = '\x1b[36m{:02}:{:02}\x1b[0;2m / {:02}:{:02}'.format(
                 start_delta.seconds // 60, start_delta.seconds % 60,
-                end_delta.seconds // 60, end_delta.seconds % 60))
-            lines_printed += 2
+                total_delta.seconds // 60, total_delta.seconds % 60)
+
+            print('-' * 30)
+            print('|\x1b[1m {} \x1b[0m|'.format(text))
+            print('|\x1b[2m |{}| \x1b[0m|'.format(status1))
+            print('|\x1b[2m       {}        \x1b[0m|'.format(status2))
+            print('-' * 30)
+            lines_printed += 5
             do_update = True
 
         else:
@@ -92,20 +100,19 @@ def clear_lines(n):
 
 
 def main():
-    now = datetime.datetime.now()
     if len(sys.argv) >= 2:
         sched = get_schedule(sys.argv[1])
     else:
         sched = get_schedule()['results'][0]
 
     while True:
+        now = datetime.datetime.now()
+        now -= datetime.timedelta(hours=6)
         lines_printed, do_update = print_schedule(sched, now)
         if not do_update:
             break
 
-        time.sleep(0.5)
-        now = datetime.datetime.now()
-
+        time.sleep(1 - now.microsecond / 1000000)
         clear_lines(lines_printed)
 
 
