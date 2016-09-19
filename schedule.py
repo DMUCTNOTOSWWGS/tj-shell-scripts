@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function, division
+
+import codecs
 import datetime
+import json
 import re
 import requests
 import sys
 import time
 
+try:
+    from urllib.request import urlopen
+except ImportError:
+    from urllib2 import urlopen
+
 
 def get_schedule(date=''):
     url = 'https://ion.tjhsst.edu/api/schedule/{}'.format(date)
-    r = requests.get(url)
-    return r.json()
+    reader = codecs.getreader('utf-8')
+    resp = reader(urlopen(url))
+    return json.load(resp)
 
 
 def parse_date(s):
@@ -43,7 +53,8 @@ def print_schedule(sched, now):
         day_color = '35'
     else:
         day_color = '37'
-    print('\033[1;{}m'.format(day_color) + day_type + '\033[0m')
+
+    print('\x1b[1;{}m'.format(day_color) + day_type + '\x1b[0m')
     lines_printed += 1
 
     # print each block
@@ -62,22 +73,22 @@ def print_schedule(sched, now):
             end_date = datetime.datetime.combine(sched_date, end)
             end_delta = end_date - now
 
-            print('\033[1m  ' + text + '  \033[0m')
-            print('\033[2m    {:02}:{:02} ~~ {:02}:{:02} \033[0m'.format(
+            print('\x1b[1m  {}  \x1b[0m'.format(text))
+            print('\x1b[2m    {:02}:{:02} ~~ {:02}:{:02} \x1b[0m'.format(
                 start_delta.seconds // 60, start_delta.seconds % 60,
                 end_delta.seconds // 60, end_delta.seconds % 60))
             lines_printed += 2
             do_update = True
 
         else:
-            print('  ' + text + '  ')
+            print('  {}  '.format(text))
             lines_printed += 1
 
     return lines_printed, do_update
 
 
 def clear_lines(n):
-    print(''.join(['\033[A\r'] * n), end='')
+    print(''.join(['\x1b[A\r'] * n), end='')
 
 
 def main():
@@ -105,6 +116,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print()
         print('bye')
-
-
-
