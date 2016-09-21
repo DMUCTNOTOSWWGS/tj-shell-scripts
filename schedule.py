@@ -80,11 +80,11 @@ def print_schedule(sched, now):
                 start_delta.seconds // 60, start_delta.seconds % 60,
                 total_delta.seconds // 60, total_delta.seconds % 60)
 
-            print('-' * 30)
+            print('+' + '-' * 28 + '+')
             print('|\x1b[1m {} \x1b[0m|'.format(text))
             print('|\x1b[2m |{}| \x1b[0m|'.format(status1))
             print('|\x1b[2m       {}        \x1b[0m|'.format(status2))
-            print('-' * 30)
+            print('+' + '-' * 28 + '+')
             lines_printed += 5
             do_update = True
 
