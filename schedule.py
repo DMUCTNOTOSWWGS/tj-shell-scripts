@@ -107,12 +107,11 @@ def main():
 
     while True:
         now = datetime.datetime.now()
-        now -= datetime.timedelta(hours=6)
         lines_printed, do_update = print_schedule(sched, now)
         if not do_update:
             break
 
-        time.sleep(1 - now.microsecond / 1000000)
+        time.sleep(1 - now.microsecond / 1e6)
         clear_lines(lines_printed)
 
 
