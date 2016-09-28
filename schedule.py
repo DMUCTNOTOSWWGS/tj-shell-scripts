@@ -6,7 +6,6 @@ import codecs
 import datetime
 import json
 import re
-import requests
 import sys
 import time
 
@@ -35,6 +34,21 @@ def pad_width(s):
     return '{:^30}'.format(s)
 
 
+def print_progress(start_delta, total_delta, text):
+    progress = max(1, round(start_delta / total_delta * 24))
+    status1 = '\x1b[36m' + '=' * (progress - 1) + '>\x1b[0;2m' + '-' * (24 - progress)
+    status2 = '\x1b[36m{:02}:{:02}\x1b[0;2m / {:02}:{:02}'.format(
+    start_delta.seconds // 60, start_delta.seconds % 60,
+    total_delta.seconds // 60, total_delta.seconds % 60)
+
+    print('+' + '-' * 28 + '+')
+    print('|\x1b[1m {} \x1b[0m|'.format(text))
+    print('|\x1b[2m |{}| \x1b[0m|'.format(status1))
+    print('|\x1b[2m       {}        \x1b[0m|'.format(status2))
+    print('+' + '-' * 28 + '+')
+    return 5  # lines_printed
+
+
 def print_schedule(sched, now):
     lines_printed = 0
 
@@ -61,36 +75,38 @@ def print_schedule(sched, now):
 
     # print each block
     do_update = False
+    last_end = None
     for block in sched['day_type']['blocks']:
         start = datetime.datetime.combine(
             sched_date, parse_time(block['start']))
         end = datetime.datetime.combine(
             sched_date, parse_time(block['end']))
 
+        # progress during passing period
+        if last_end and last_end <= now < start:
+            text = 'Passing      {:>5} - {:>5}'.format(
+                '{:%H:%M}'.format(last_end), '{:%H:%M}'.format(start))
+            start_delta = now - last_end
+            total_delta = start - last_end
+            lines_printed += print_progress(start_delta, total_delta, text)
+            do_update = True
+
+        # progress during block
         text = '{:<10}   {:>5} - {:>5}'.format(block['name'],
             '{:%H:%M}'.format(start), '{:%H:%M}'.format(end))
 
-        if is_today and start <= now <= end:
+        if start <= now < end:
             start_delta = now - start
             total_delta = end - start
-
-            progress = max(1, round(start_delta / total_delta * 24))
-            status1 = '\x1b[36m' + '=' * (progress - 1) + '>\x1b[0;2m' + '-' * (24 - progress)
-            status2 = '\x1b[36m{:02}:{:02}\x1b[0;2m / {:02}:{:02}'.format(
-                start_delta.seconds // 60, start_delta.seconds % 60,
-                total_delta.seconds // 60, total_delta.seconds % 60)
-
-            print('+' + '-' * 28 + '+')
-            print('|\x1b[1m {} \x1b[0m|'.format(text))
-            print('|\x1b[2m |{}| \x1b[0m|'.format(status1))
-            print('|\x1b[2m       {}        \x1b[0m|'.format(status2))
-            print('+' + '-' * 28 + '+')
-            lines_printed += 5
+            lines_printed += print_progress(start_delta, total_delta, text)
             do_update = True
 
         else:
             print('  {}  '.format(text))
             lines_printed += 1
+
+        # update last_end
+        last_end = end
 
     return lines_printed, do_update
 
