@@ -37,14 +37,14 @@ def pad_width(s):
 def print_progress(start_delta, total_delta, text):
     progress = max(1, round(start_delta / total_delta * 24))
     status1 = '\x1b[36m' + '=' * (progress - 1) + '>\x1b[0;2m' + '-' * (24 - progress)
-    status2 = '\x1b[36m{:02}:{:02}\x1b[0;2m / {:02}:{:02}'.format(
+    status2 = '\x1b[36m{:02}:{:02}\x1b[0;2m / {:02}:{:02}\x1b[0m'.format(
     start_delta.seconds // 60, start_delta.seconds % 60,
     total_delta.seconds // 60, total_delta.seconds % 60)
 
     print('+' + '-' * 28 + '+')
     print('|\x1b[1m {} \x1b[0m|'.format(text))
     print('|\x1b[2m |{}| \x1b[0m|'.format(status1))
-    print('|\x1b[2m       {}        \x1b[0m|'.format(status2))
+    print('|       {}        |'.format(status2))
     print('+' + '-' * 28 + '+')
     return 5  # lines_printed
 
