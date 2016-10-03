@@ -15,6 +15,14 @@ import smtplib
 import time
 
 
+def attempt_signup(block_id, activity_id):
+    auth = (USERNAME, PASSWORD)
+    data = {'block': block_id, 'activity': activity_id}
+    r = requests.post('https://ion.tjhsst.edu/api/signups/user',
+            auth=auth, data=data)
+    return r
+
+
 def send_email_to_self(subject, message):
     s = smtplib.SMTP_SSL('smtp.tjhsst.edu')
     s.login(USERNAME, PASSWORD)
@@ -36,13 +44,9 @@ def main():
 
     # poll for signup
     while True:
-        auth = (USERNAME, PASSWORD)
-        data = {'block': BLOCK_ID, 'activity': ACTIVITY_ID}
-        r = requests.post('https://ion.tjhsst.edu/api/signups/user',
-                auth=auth, data=data)
-
-        print("time: <{}>, status: <{}>, "
-            .format(time.ctime(), r.status_code), end='')
+        r = attempt_signup(BLOCK_ID, ACTIVITY_ID)
+        print("time: <{}>, status: <{}>, ".format(
+            time.ctime(), r.status_code), end='')
         if r.status_code == 400:
             print("details: <{}>".format(r.json()['details']))
         else:
