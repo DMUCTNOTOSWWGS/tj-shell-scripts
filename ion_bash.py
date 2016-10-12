@@ -3,8 +3,8 @@
 
 # change these
 USERNAME = '2017kgeng'
-BLOCK_ID = 3162
-ACTIVITY_ID = 814
+BLOCK_ID = 3172
+ACTIVITY_ID = 395
 TIMEOUT = 86.4
 
 
