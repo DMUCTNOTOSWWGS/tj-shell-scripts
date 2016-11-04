@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# python3 is deprecated...consider python2 instead
 
 from __future__ import print_function, division
 
