@@ -52,7 +52,7 @@ def main():
         else:
             break
 
-        time.sleep(max(30, TIMEOUT)) # omg youre so controlling wtf
+        time.sleep(max(30, TIMEOUT))
 
 
     # send notification email
