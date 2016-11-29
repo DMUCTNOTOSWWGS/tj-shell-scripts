@@ -36,7 +36,7 @@ def pad_width(s):
 
 def print_progress(start_delta, total_delta, text):
     percent = start_delta.total_seconds() / total_delta.total_seconds()
-    progress = max(1, round(percent * 24))
+    progress = max(1, int(round(percent * 24)))
     status1 = '\x1b[36m' + '=' * (progress - 1) + '>\x1b[0;2m' + '-' * (24 - progress)
     status2 = '\x1b[36m{:02}:{:02}\x1b[0;2m / {:02}:{:02}\x1b[0m'.format(
     start_delta.seconds // 60, start_delta.seconds % 60,
