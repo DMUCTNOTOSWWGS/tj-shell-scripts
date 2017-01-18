@@ -37,10 +37,11 @@ def pad_width(s):
 def print_progress(start_delta, total_delta, text):
     percent = start_delta.total_seconds() / total_delta.total_seconds()
     progress = max(1, int(round(percent * 24)))
-    status1 = '\x1b[36m' + '=' * (progress - 1) + '>\x1b[0;2m' + '-' * (24 - progress)
+    status1 = '\x1b[36m{}>\x1b[0;2m{}'.format(
+        '=' * (progress - 1), '-' * (24 - progress))
     status2 = '\x1b[36m{:02}:{:02}\x1b[0;2m / {:02}:{:02}\x1b[0m'.format(
-    start_delta.seconds // 60, start_delta.seconds % 60,
-    total_delta.seconds // 60, total_delta.seconds % 60)
+        start_delta.seconds // 60, start_delta.seconds % 60,
+        total_delta.seconds // 60, total_delta.seconds % 60)
 
     print('+' + '-' * 28 + '+')
     print('|\x1b[1m {} \x1b[0m|'.format(text))
@@ -50,18 +51,20 @@ def print_progress(start_delta, total_delta, text):
     return 5  # lines_printed
 
 
-def print_schedule(sched, now):
+def print_schedule(sched, sched_date, now):
     lines_printed = 0
-
-    sched_date = parse_date(sched['date'])
     is_today = sched_date == now.date()
 
     # print date
     print(pad_width('{:%a, %b %d}'.format(sched_date)))
     lines_printed += 1
 
-    # print day type with color
-    day_type = pad_width(re.sub(r'<.+?>', '', sched['day_type']['name']))
+    # clean up day type
+    day_type = sched['day_type']['name']
+    day_type = re.sub(r'<.+?>', ' ', day_type)
+    day_type = pad_width(' '.join(day_type.split()))
+
+    # select day color
     if 'Blue' in day_type:
         day_color = '34'
     elif 'Red' in day_type:
@@ -71,8 +74,9 @@ def print_schedule(sched, now):
     else:
         day_color = '37'
 
-    print('\x1b[1;{}m'.format(day_color) + day_type + '\x1b[0m')
-    lines_printed += 1
+    print('\x1b[1;{}m{}\x1b[0m'.format(
+        day_color, pad_width(day_type)))
+    lines_printed += 1 + day_type.count('\n')
 
     # print each block
     do_update = False
@@ -118,13 +122,25 @@ def clear_lines(n):
 
 def main():
     if len(sys.argv) >= 2:
-        sched = get_schedule(sys.argv[1])
+        # attempt to parse date
+        try:
+            req_date = parse_date(sys.argv[1])
+        except ValueError:
+            print('Please enter a valid date.', file=sys.stderr)
+            return 1
+        sched = get_schedule(req_date)
     else:
         sched = get_schedule()['results'][0]
+        req_date = parse_date(sched['date'])
+
+
+    if 'day_type' not in sched:
+        print('No schedule available.')
+        return 0
 
     while True:
         now = datetime.datetime.now()
-        lines_printed, do_update = print_schedule(sched, now)
+        lines_printed, do_update = print_schedule(sched, req_date, now)
         if not do_update:
             break
 
@@ -132,11 +148,11 @@ def main():
         time.sleep(1 - now.microsecond / 1e6)
         clear_lines(lines_printed)
 
+    return 0
 
 if __name__ == '__main__':
     try:
-        while main():
-            pass
+        sys.exit(main())
     except KeyboardInterrupt:
         print()
         print('Goodbye!')
